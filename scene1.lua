@@ -50,46 +50,62 @@ if event.phase == "will" then
 end
 
 local sheetOptions = {
-    width = 60*2,  -- larghezza di ogni frame
-    height = 130*2, -- altezza di ogni frame
-    numFrames = 4  -- numero totale di frame nello spritesheet
+    width = 2050/15,  -- larghezza di ogni frame
+    height = 280, -- altezza di ogni frame
+    numFrames = 15  -- numero totale di frame nello spritesheet
 }
 
 -- Carica lo spritesheet
-local spriteSheet = graphics.newImageSheet("pg_statik_fron.png", sheetOptions)
+--local spriteSheet = graphics.newImageSheet("ANIMAZIONI/RETRO0000.png", sheetOptions)
 
--- Definisce la sequenza dell'animazione
-local sequenceData = {
-    {
-        name = "idle",  -- Nome dell'animazione
-        start = 1,      -- Frame iniziale
-        count = 4,      -- Numero totale di frame
-        time = 333,     -- Tempo per ciclo (12 FPS)
-        loopCount = 0   -- Loop infinito
+local currentSprite  -- Variabile per tenere traccia dello sprite attuale
+local currentPNG="ANIMAZIONI/RETRO0000.png";
+local function createSprite(sheetPath,var)
+    if currentSprite then
+        display.remove(currentSprite)  -- Rimuove il vecchio sprite
+    end
+
+    local spriteSheet = graphics.newImageSheet(sheetPath, sheetOptions)
+    local sequenceData = {
+        {
+            name = "idle",  -- Nome dell'animazione
+            start = 1,      -- Frame iniziale
+            count = 1,      -- Numero totale di frame
+            time = 600,     -- Tempo per ciclo (12 FPS)
+            loopCount = 0   -- Loop infinito
+        },
+        { name = "playAllFrames", start = 1, count = 15, time = 1000, loopCount = 0 }
     }
-}
+
+    currentSprite = display.newSprite(sceneGroup, spriteSheet, sequenceData)
+    currentSprite.x, currentSprite.y = centerX, centerY
+   -- physics.addBody(currentSprite, physics.static, { isSensor = true })
+    currentSprite:setSequence(var)
+    currentSprite:play()
+end
+-- Definisce la sequenza dell'animazione
+createSprite(currentPNG,"idle")
 
 -- Crea l'oggetto come sprite animato
-local object = display.newSprite(sceneGroup, spriteSheet, sequenceData)
-
+local pg_collider = display.newRect(0, 0, sheetOptions.width-15,sheetOptions.height)
+pg_collider:setFillColor(1, 0, 0, 0.0)
 -- Se l'oggetto non viene caricato, mostra un errore
-if not object then
+if not pg_collider then
     print("Errore: Immagine non trovata!")
 end
 
 -- Imposta la posizione
-object.x = centerX
-object.y = centerY 
+pg_collider.x = centerX
+pg_collider.y = centerY 
 
 -- Aggiunge la fisica
-physics.addBody(object, "static", { isSensor = true })
+physics.addBody(pg_collider, physics.Static, { isSensor = true })
 
 -- Avvia l'animazione
-object:setSequence("idle")
-object:play()
+
 -- Aggiungi gli ostacoli e attivatori di eventi
 --timer.performWithDelay(500, function()
-    local ticketer = display.newImageRect(sceneGroup, "tickets.png", 170*2, 170*2)
+    local ticketer = display.newImageRect(sceneGroup, "popcorn.png", 170*2, 170*2)
     if not ticketer then
         print("Errore: Immagine non trovata!")
     end
@@ -271,20 +287,20 @@ local function onCollision(event)
     print(event.phase)
     if event.phase == "began" then
         varDirecction = currentDirection
-        if isObjectInRange(ticketer, object, 400, 300) then
+        if isObjectInRange(ticketer, pg_collider, 400, 300) then
             print("Hai toccato il ticketer!")
             --ticketer:setFillColor(1, 0, 0)
             grabticket(ticket_Button)
             
             var_temp = ticket_Button -- Cambia colore
-        elseif isObjectInRange(popcorn, object, 300, 400) then
+        elseif isObjectInRange(popcorn, pg_collider, 300, 400) then
             print("Hai toccato il popcorn!")
            -- popcorn:setFillColor(1, 1, 0)
             grabticket(popcorn_Button)
             var_temp = popcorn_Button
         else
             for i = 1, numeroPorte do
-                if isObjectInRange(porte[i], object, 300, 400) then
+                if isObjectInRange(porte[i], pg_collider, 300, 400) then
                    -- print("Hai toccato il popcorn!")
                     grabticket(porta_Button)
                     var_temp = porta_Button
@@ -304,7 +320,7 @@ local function onCollision(event)
         end 
        print(_G.sharedData.gettoni)
         -- Assegna il listener di collisione
-        object:addEventListener("collision", onCollision)
+        pg_collider:addEventListener("collision", onCollision)
 
         function grabticket(tocco)
             print(mover)
@@ -356,16 +372,19 @@ local function onCollision(event)
             if currentDirection then
 
                 if currentDirection == "up" and varDirecction ~= "up" then
+                     -- Cambia sequenza
+                    
                     background.y = background.y + moveSpeed / molt
-                    object.fill = { type = "image", filename = "pg_statik.png" }
+                   -- sequenceData.count=15;
+                     --pg_collider = display.newSprite(sceneGroup, spriteSheet, sequenceData)
                     pos.y = pos.y + moveSpeed
-                   -- print("t:", object, object.body)
+                   -- print("t:", pg_collider, pg_collider.body)
                     if not canMove() then
                         background.y = background.y - moveSpeed / molt
                         pos.y = pos.y - moveSpeed
                     end
                 elseif currentDirection == "down" and varDirecction ~= "down" then
-                    object.fill = { type = "image", filename = "pg_statik_fron.png" }
+                 --   pg_collider.fill = { type = "image", filename = "pg_statik_fron.png" }
                     pos.y = pos.y - moveSpeed
                     background.y = background.y - moveSpeed / molt
                     if not canMove() then
@@ -416,8 +435,13 @@ local function onCollision(event)
             if event.phase == "began" then
                 if event.target == upButton then
                     currentDirection = "up"
+                    currentPNG="ANIMAZIONI/RETRO0000.png"
+                  
                 elseif event.target == downButton then
                     currentDirection = "down"
+                    currentPNG="ANIMAZIONI/FRONTE0000.png"
+                    
+                   
                 elseif event.target == leftButton then
                     currentDirection = "left"
                 elseif event.target == rightButton then
@@ -455,9 +479,12 @@ local function onCollision(event)
                 end
             end
                 isMoving = true
+                createSprite(currentPNG,"playAllFrames")
             elseif event.phase == "ended" or event.phase == "cancelled" then
                 currentDirection = nil
                 isMoving = false
+                createSprite(currentPNG,"idle")
+               
             end
             return true
         end
